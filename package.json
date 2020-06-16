@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "scripts": {
+    "lint": "eslint --cache ./ --ext .vue --ext .js",
+    "dev": "./node_modules/.bin/nodemon index.js",
+    "start": "node index.js"
+  },
   "directories": {
     "doc": "docs"
   },
@@ -16,11 +21,12 @@
     "js-yaml": "^3.14.0",
     "morgan": "^1.10.0",
     "swagger-ui-express": "^4.1.4",
+    "tomoxjs": "file:../tomoxjs",
     "winston": "^3.2.1"
   },
-  "devDependencies": {},
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "devDependencies": {
+    "eslint": "^7.2.0",
+    "nodemon": "^2.0.4"
   },
   "author": "",
   "license": "MIT"
