@@ -54,4 +54,40 @@ router.get(['/tickers', '/ticker'], async function (req, res, next) {
     return res.json(ret)
 })
 
+router.get(['/orderbook/:pairName'], async function (req, res, next) {
+    let baseToken = req.params.pairName.split('_')[0]
+    let quoteToken = req.params.pairName.split('_')[1]
+    let baseTokenAddress = ''
+    let quoteTokenAddress = ''
+    let tokens = await tomox.getTokens()
+
+    tokens.forEach(t => {
+        if (t.symbol === baseToken) {
+            baseTokenAddress = t.contractAddress
+        }
+        if (t.symbol === quoteToken) {
+            quoteTokenAddress = t.contractAddress
+        }
+    })
+
+    let orderbook = await tomox.getOrderBook({
+        baseToken: baseTokenAddress,
+        quoteToken: quoteTokenAddress
+    })
+    let ret = {}
+    ret.asks = []
+    ret.bids = []
+    orderbook.asks.forEach(a => {
+        ret.asks.push([
+            a.pricepoint, a.amount
+        ])
+    })
+    orderbook.bids.forEach(a => {
+        ret.bids.push([
+            a.pricepoint, a.amount
+        ])
+    })
+    return res.json(ret)
+})
+
 module.exports = router
