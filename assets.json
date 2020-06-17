@@ -1,0 +1,42 @@
+{
+	"BTC": {  
+		"name":"bitcoin",
+		"unified_cryptoasset_id": 1,
+		"can_withdraw": true,
+		"can_deposit": true,
+		"min_withdraw": "0.001",
+		"max_withdraw ": "100",
+		"maker_fee": "0.001",
+		"taker_fee": "0.001"
+	},
+	"TOMO": {
+		"name":"tomochain",
+		"unified_cryptoasset_id": 2570,
+		"can_withdraw": true,
+		"can_deposit": true,
+		"min_withdraw": "0",
+		"max_withdraw ": "10000000",
+		"maker_fee": "0.001",
+		"taker_fee": "0.001"
+	},
+	"ETH": {
+		"name":"ethereum",
+		"unified_cryptoasset_id": 1027,
+		"can_withdraw": true,
+		"can_deposit": true,
+		"min_withdraw": "0.001",
+		"max_withdraw ": "1000",
+		"maker_fee": "0.001",
+		"taker_fee": "0.001"
+	},
+	"USDT": {
+		"name":"tether",
+		"unified_cryptoasset_id": 825,
+		"can_withdraw": true,
+		"can_deposit": true,
+		"min_withdraw": "2",
+		"max_withdraw ": "1000000",
+		"maker_fee": "0.001",
+		"taker_fee": "0.001"
+	}
+}
