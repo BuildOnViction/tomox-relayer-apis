@@ -2,7 +2,9 @@ const express = require('express')
 const config = require('config')
 const router = express.Router()
 const TomoXJS = require('tomoxjs')
+const BigNumber = require('bignumber.js')
 const assets = require('../assets')
+const moment = require('moment')
 const tomox = new TomoXJS()
 
 router.get('/markets', async function (req, res, next) {
@@ -95,14 +97,18 @@ router.get(['/trades/:pairName'], async function (req, res, next) {
     let quoteToken = req.params.pairName.split('_')[1]
     let baseTokenAddress = ''
     let quoteTokenAddress = ''
+    let baseTokenDecimals = 18
+    let quoteTokenDecimals = 18
     let tokens = await tomox.getTokens()
 
     tokens.forEach(t => {
         if (t.symbol === baseToken) {
             baseTokenAddress = t.contractAddress
+            baseTokenDecimals = t.decimals
         }
         if (t.symbol === quoteToken) {
             quoteTokenAddress = t.contractAddress
+            quoteTokenDecimals = t.decimals
         }
     })
 
@@ -111,12 +117,16 @@ router.get(['/trades/:pairName'], async function (req, res, next) {
         quoteToken: quoteTokenAddress
     })
     let ret = trades.trades.map(t => {
+        let price = new BigNumber(t.pricepoint).dividedBy(10 ** quoteTokenDecimals)
+        let baseVolume = new BigNumber(t.amount).dividedBy(10 ** baseTokenDecimals)
+        let { amountPrecision } = tomox.calcPrecision(parseFloat(price.toString(10)))
+        let quoteVolume = baseVolume.multipliedBy(price)
         return  {         
             trade_id: parseInt(t.hash.substr(t.hash.length - 8), 16),
-            price: t.pricepoint,
-            base_volume: t.amount,
-            quote_volume: t.amount,
-            timestamp: t.createdAt,
+            price: price.toString(10),
+            base_volume: baseVolume.toString(10),
+            quote_volume: quoteVolume.toFixed(amountPrecision),
+            timestamp: moment(t.createdAt).unix(),
             type: t.takerOrderSide
         }
     })
