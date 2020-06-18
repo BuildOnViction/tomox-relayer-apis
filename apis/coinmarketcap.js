@@ -6,6 +6,7 @@ const BigNumber = require('bignumber.js')
 const assets = require('../assets')
 const moment = require('moment')
 const tomox = new TomoXJS()
+const { check, validationResult } = require('express-validator/check')
 
 router.get('/markets', async function (req, res, next) {
     let markets = await tomox.getMarkets()
@@ -56,10 +57,25 @@ router.get(['/tickers', '/ticker'], async function (req, res, next) {
     return res.json(ret)
 })
 
-router.get(['/orderbook/:pairName'], async function (req, res, next) {
+router.get(['/orderbook/:pairName'], [
+    check('pairName').exists().isLength({ max: 10 }).withMessage("'market_pair' is required, max length 10"),
+    check('depth').optional().isNumeric().withMessage("'market_pair' is a number"),
+    check('level').optional().isNumeric().isIn([ 1, 2, 3]).withMessage("'level' is in [ 1, 2, 3 ]")
+], async function (req, res, next) {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+        return next(errors.array())
+    }
     let baseToken = req.params.pairName.split('_')[0]
     let quoteToken = req.params.pairName.split('_')[1]
     let depth = req.query.depth || 0
+    let level = req.query.level || 3
+    if (parseInt(level) === 1) {
+        depth = 2
+    }
+    if (parseInt(level) === 2) {
+        depth = 20
+    }
     let baseTokenAddress = ''
     let quoteTokenAddress = ''
     let baseTokenDecimals = 18
@@ -110,7 +126,13 @@ router.get(['/orderbook/:pairName'], async function (req, res, next) {
     return res.json(ret)
 })
 
-router.get(['/trades/:pairName'], async function (req, res, next) {
+router.get(['/trades/:pairName'], [
+    check('pairName').exists().isLength({ max: 10 }).withMessage("'market_pair' is required, max length 10")
+], async function (req, res, next) {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+        return next(errors.array())
+    }
     let baseToken = req.params.pairName.split('_')[0]
     let quoteToken = req.params.pairName.split('_')[1]
     let baseTokenAddress = ''
