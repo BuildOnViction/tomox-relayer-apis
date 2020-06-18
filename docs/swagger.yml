@@ -176,6 +176,12 @@ paths:
           required: true
           default: TOMO_USDT
           type: string
+        - name: depth
+          in: query
+          description: Orders depth quantity [0,10,20,50,100,500]. Depth 100 means 50 for each bid/ask side. Default full orderbook.
+          required: false
+          default: 0
+          type: number
       responses:
         '200':
           description: OK

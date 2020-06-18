@@ -59,6 +59,7 @@ router.get(['/tickers', '/ticker'], async function (req, res, next) {
 router.get(['/orderbook/:pairName'], async function (req, res, next) {
     let baseToken = req.params.pairName.split('_')[0]
     let quoteToken = req.params.pairName.split('_')[1]
+    let depth = req.query.depth || 0
     let baseTokenAddress = ''
     let quoteTokenAddress = ''
     let baseTokenDecimals = 18
@@ -83,20 +84,28 @@ router.get(['/orderbook/:pairName'], async function (req, res, next) {
     let ret = {}
     ret.asks = []
     ret.bids = []
-    orderbook.asks.forEach(a => {
+    let askDepth = (depth / 2) || orderbook.asks.length
+    for (let i = 0; i < askDepth; i++) {
+        let a = orderbook.asks[i]
         let price = new BigNumber(a.pricepoint).dividedBy(10 ** quoteTokenDecimals).toString(10)
-        let amount = new BigNumber(a.amount).dividedBy(10 ** baseTokenDecimals).toString(10)
+        let { amountPrecision } = tomox.calcPrecision(parseFloat(price))
+        let amount = new BigNumber(a.amount).dividedBy(10 ** baseTokenDecimals).toFixed(amountPrecision)
         ret.asks.push([
             price, amount
         ])
-    })
-    orderbook.bids.forEach(a => {
+    }
+
+    let bidDepth = (depth / 2) || orderbook.bids.length
+    for (let i = 0; i < bidDepth; i++) {
+        let a = orderbook.bids[i]
         let price = new BigNumber(a.pricepoint).dividedBy(10 ** quoteTokenDecimals).toString(10)
-        let amount = new BigNumber(a.amount).dividedBy(10 ** baseTokenDecimals).toString(10)
+        let { amountPrecision } = tomox.calcPrecision(parseFloat(price))
+        let amount = new BigNumber(a.amount).dividedBy(10 ** baseTokenDecimals).toFixed(amountPrecision)
         ret.bids.push([
             price, amount
         ])
-    })
+    }
+
     ret.timestamp = moment().unix() * 1000
     return res.json(ret)
 })
