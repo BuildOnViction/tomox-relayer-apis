@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint --cache ./ --ext .vue --ext .js",
-    "dev": "./node_modules/.bin/nodemon index.js",
+    "dev": "./node_modules/.bin/nodemon index.js --ext .js --ext .yml",
     "start": "node index.js"
   },
   "directories": {

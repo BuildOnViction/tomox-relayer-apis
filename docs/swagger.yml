@@ -1,32 +1,235 @@
 swagger: '2.0'
 info:
-  version: 1.3.3
+  version: 1.0.0
   title: TomoX Relayer APIs
   description: Happy to code TomoX Relayer APIs
   license:
     name: Github
     url: 'https://github.com/tomochain/tomox-relayer-apis'
 tags:
-  - name: Config
-    description: Get Application Configuration
-schemes:
-  - https
-  - http
+  - name: CoinMarketCap
+    description: CoinMarketCap's Ideal API Endpoints
 consumes:
   - application/json
 produces:
   - application/json
 paths:
-  /api/config:
+  /api/coinmarketcap/markets:
     get:
       tags:
-        - Config
-      summary: Get TomoMaster Application Configuration
+        - CoinMarketCap
+      summary: Market Summary Endpoint
+      description: >-
+        The summary endpoint is to provide an overview of market data for all tickers and all market pairs on the exchange.
+
+
+        **Returns**
+
+
+         - `trading_pairs:` `(string - Mandatory)` Identifier of a ticker with delimiter to separate base/quote, eg. BTC-USD (Price of BTC is quoted in USD) 
+
+         - `base_currency:` `(string - Recommended)` Symbol/currency code of base currency, eg. BTC
+
+         - `quote_currency:` `(string - Recommended)` Symbol/currency code of quote currency, eg. USD
+
+         - `last_price:` `(decimal - Mandatory)` Last transacted price of base currency based on given quote currency
+
+         - `lowest_ask:` `(decimal - Mandatory)` Lowest Ask price of base currency based on given quote currency
+
+         - `highest_bid:` `(decimal - Mandatory)` Highest bid price of base currency based on given quote currency
+
+         - `base_volume:` `(decimal - Mandatory)` 24-hr volume of market pair denoted in BASE currency
+
+         - `quote_volume:` `(decimal - Mandatory)` 24-hr volume of market pair denoted in QUOTE currency
+
+         - `price_change_percent_24h:` `(decimal - Mandatory)` 24-hr % price change of market pair
+
+         - `highest_price_24h:` `(decimal - Mandatory)` Highest price of base currency based on given quote currency in the last 24-hrs
+
+         - `lowest_price_24h:` `(decimal - Mandatory)` Lowest price of base currency based on given quote currency in the last 24-hrs
+
+
+        
       responses:
         '200':
           description: OK
-          schema:
-            $ref: '#/definitions/config'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '406':
+          description: Not Acceptable
+        '500':
+          description: Server Internal Error
+
+  /api/coinmarketcap/assets:
+    get:
+      tags:
+        - CoinMarketCap
+      summary: Endpoint A1
+      description: >-
+        The assets endpoint is to provide a detailed summary for each currency available on the exchange.
+
+
+        **Returns**
+
+
+        - `name:` `(string - Recommended)` Full name of cryptocurrency.
+
+        - `unified_cryptoasset_id:` `(integer - Recommended)` Unique ID of cryptocurrency assigned by Unified Cryptoasset ID.
+
+        - `can_withdraw:` `(boolean - Recommended)` Identifies whether withdrawals are enabled or disabled.
+
+        - `can_deposit:` `(boolean - Recommended)` Identifies whether deposits are enabled or disabled.
+
+        - `min_withdraw:` `(decimal - Recommended)` Identifies the single minimum withdrawal amount of a cryptocurrency.
+
+        - `max_withdraw:` `(decimal - Recommended)` Identifies the single maximum withdrawal amount of a cryptocurrency.
+
+        - `maker_fee:` `(decimal - Recommended)` Fees applied when liquidity is added to the order book.
+
+        - `taker_fee:` `(decimal - Recommended)` Fees applied when liquidity is removed from the order book.
+
+        
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '406':
+          description: Not Acceptable
+        '500':
+          description: Server Internal Error
+
+  /api/coinmarketcap/ticker:
+    get:
+      tags:
+        - CoinMarketCap
+      summary: Endpoint A2
+      description: >-
+        The ticker endpoint is to provide a 24-hour pricing and volume summary for each market pair available on the exchange.
+
+
+        **Returns**
+
+
+
+        - `base_id:` `(integer - Recommended)` The quote pair Unified Cryptoasset ID.
+
+        - `quote_id:` `(integer - Recommended)` The base pair Unified Cryptoasset ID.
+
+        - `last_price:` `(decimal - Mandatory)` Last transacted price of base currency based on given quote currency
+
+        - `base_volume:` `(decimal - Mandatory)` 24-hour trading volume denoted in BASE currency
+
+        - `quote_volume:` `(decimal - Mandatory)` 24 hour trading volume denoted in QUOTE currency
+
+        - `isFrozen:` `(integer - Recommended)` Indicates if the market is currently enabled (0) or disabled (1).
+
+        
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '406':
+          description: Not Acceptable
+        '500':
+          description: Server Internal Error
+
+  /api/coinmarketcap/orderbook/{market_pair}:
+    get:
+      tags:
+        - CoinMarketCap
+      summary: Endpoint A3
+      description: >-
+        The order book endpoint is to provide a complete level 2 order book (arranged by best asks/bids) with full depth returned for a given market pair.
+
+
+        **Parameters**
+
+
+        - `market_pair:` `(string - Mandatory)` A pair such as `TOMO_USDT`
+
+        - `depth:` `(int - Recommended(used to calculate liquidity score for rankings))` Orders depth quantity: [0,5,10,20,50,100,500]. Not defined or 0 = full order book. Depth = 100 means 50 for each bid/ask side.
+
+        - `level:` `(int - Recommended (used to calculate liquidity score for rankings))` Level 1 – Only the best bid and ask. Level 2 – Arranged by best bids and asks. Level 3 – Complete order book, no aggregation.
+
+
+        **Returns**
+
+
+        - `timestamp:` `(timestamp - Mandatory)` Unix timestamp in milliseconds for when the last updated time occurred.
+
+        - `bids:` `(decimal - Mandatory)` An array containing 2 elements. The offer price and quantity for each bid order.
+
+        - `asks:` `(decimal - Mandatory)` An array containing 2 elements. The ask price and quantity for each ask order.
+
+      parameters:
+        - name: market_pair
+          in: path
+          description: A pair such as 'TOMO_USDT'
+          required: true
+          default: TOMO_USDT
+          type: string
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '406':
+          description: Not Acceptable
+        '500':
+          description: Server Internal Error
+
+
+  /api/coinmarketcap/trades/{market_pair}:
+    get:
+      tags:
+        - CoinMarketCap
+      summary: Endpoint A4
+      description: >-
+        The trades endpoint is to return data on all recently completed trades for a given market pair.
+
+
+        **Parameters**
+
+
+        - `market_pair:` `(string - Mandatory)` A pair such as `TOMO_USDT`
+
+
+        **Returns**
+
+
+        - `trade_id:` `(integer - Mandatory)` A unique ID associated with the trade for the currency pair transaction. Note: Unix timestamp does not qualify as trade_id.
+
+        - `price:` `(decimal - Mandatory)` Last transacted price of base currency based on given quote currency.
+
+        - `base_volume:` `(decimal - Mandatory)` Transaction amount in BASE currency.
+
+        - `quote_volume:` `(decimal - Mandatory)` Transaction amount in QUOTE currency.
+
+        - `timestamp:` `(timestamp - Mandatory)` Unix timestamp in milliseconds for when the transaction occurred.
+
+        - `type:` `(string - Mandatory)` Used to determine whether or not the transaction originated as a buy or sell. Buy – Identifies an ask was removed from the order book. Sell – Identifies a bid was removed from the order book.
+
+
+      parameters:
+        - name: market_pair
+          in: path
+          description: A pair such as 'TOMO_USDT'
+          required: true
+          default: TOMO_USDT
+          type: string
+      responses:
+        '200':
+          description: OK
         '400':
           description: Bad Request
         '401':
