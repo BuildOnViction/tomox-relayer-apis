@@ -61,14 +61,18 @@ router.get(['/orderbook/:pairName'], async function (req, res, next) {
     let quoteToken = req.params.pairName.split('_')[1]
     let baseTokenAddress = ''
     let quoteTokenAddress = ''
+    let baseTokenDecimals = 18
+    let quoteTokenDecimals = 18
     let tokens = await tomox.getTokens()
 
     tokens.forEach(t => {
         if (t.symbol === baseToken) {
             baseTokenAddress = t.contractAddress
+            baseTokenDecimals = t.decimals
         }
         if (t.symbol === quoteToken) {
             quoteTokenAddress = t.contractAddress
+            quoteTokenDecimals = t.decimals
         }
     })
 
@@ -80,15 +84,20 @@ router.get(['/orderbook/:pairName'], async function (req, res, next) {
     ret.asks = []
     ret.bids = []
     orderbook.asks.forEach(a => {
+        let price = new BigNumber(a.pricepoint).dividedBy(10 ** quoteTokenDecimals).toString(10)
+        let amount = new BigNumber(a.amount).dividedBy(10 ** baseTokenDecimals).toString(10)
         ret.asks.push([
-            a.pricepoint, a.amount
+            price, amount
         ])
     })
     orderbook.bids.forEach(a => {
+        let price = new BigNumber(a.pricepoint).dividedBy(10 ** quoteTokenDecimals).toString(10)
+        let amount = new BigNumber(a.amount).dividedBy(10 ** baseTokenDecimals).toString(10)
         ret.bids.push([
-            a.pricepoint, a.amount
+            price, amount
         ])
     })
+    ret.timestamp = moment().unix() * 1000
     return res.json(ret)
 })
 
@@ -126,7 +135,7 @@ router.get(['/trades/:pairName'], async function (req, res, next) {
             price: price.toString(10),
             base_volume: baseVolume.toString(10),
             quote_volume: quoteVolume.toFixed(amountPrecision),
-            timestamp: moment(t.createdAt).unix(),
+            timestamp: moment(t.createdAt).unix() * 1000,
             type: t.takerOrderSide
         }
     })
