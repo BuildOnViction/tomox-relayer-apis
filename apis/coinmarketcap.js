@@ -90,4 +90,37 @@ router.get(['/orderbook/:pairName'], async function (req, res, next) {
     return res.json(ret)
 })
 
+router.get(['/trades/:pairName'], async function (req, res, next) {
+    let baseToken = req.params.pairName.split('_')[0]
+    let quoteToken = req.params.pairName.split('_')[1]
+    let baseTokenAddress = ''
+    let quoteTokenAddress = ''
+    let tokens = await tomox.getTokens()
+
+    tokens.forEach(t => {
+        if (t.symbol === baseToken) {
+            baseTokenAddress = t.contractAddress
+        }
+        if (t.symbol === quoteToken) {
+            quoteTokenAddress = t.contractAddress
+        }
+    })
+
+    let trades = await tomox.getTrades({
+        baseToken: baseTokenAddress,
+        quoteToken: quoteTokenAddress
+    })
+    let ret = trades.trades.map(t => {
+        return  {         
+            trade_id: parseInt(t.hash.substr(t.hash.length - 8), 16),
+            price: t.pricepoint,
+            base_volume: t.amount,
+            quote_volume: t.amount,
+            timestamp: t.createdAt,
+            type: t.takerOrderSide
+        }
+    })
+    return res.json(ret)
+})
+
 module.exports = router
