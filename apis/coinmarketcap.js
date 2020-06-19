@@ -6,6 +6,7 @@ const BigNumber = require('bignumber.js')
 const assets = require('../assets')
 const moment = require('moment')
 const tomox = new TomoXJS()
+const { check, validationResult } = require('express-validator/check')
 
 router.get('/markets', async function (req, res, next) {
     let markets = await tomox.getMarkets()
@@ -56,19 +57,39 @@ router.get(['/tickers', '/ticker'], async function (req, res, next) {
     return res.json(ret)
 })
 
-router.get(['/orderbook/:pairName'], async function (req, res, next) {
+router.get(['/orderbook/:pairName'], [
+    check('pairName').exists().isLength({ max: 10 }).withMessage("'market_pair' is required, max length 10"),
+    check('depth').optional().isNumeric().withMessage("'market_pair' is a number"),
+    check('level').optional().isNumeric().isIn([ 1, 2, 3]).withMessage("'level' is in [ 1, 2, 3 ]")
+], async function (req, res, next) {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+        return next(errors.array())
+    }
     let baseToken = req.params.pairName.split('_')[0]
     let quoteToken = req.params.pairName.split('_')[1]
+    let depth = req.query.depth || 0
+    let level = req.query.level || 3
+    if (parseInt(level) === 1) {
+        depth = 2
+    }
+    if (parseInt(level) === 2) {
+        depth = 20
+    }
     let baseTokenAddress = ''
     let quoteTokenAddress = ''
+    let baseTokenDecimals = 18
+    let quoteTokenDecimals = 18
     let tokens = await tomox.getTokens()
 
     tokens.forEach(t => {
         if (t.symbol === baseToken) {
             baseTokenAddress = t.contractAddress
+            baseTokenDecimals = t.decimals
         }
         if (t.symbol === quoteToken) {
             quoteTokenAddress = t.contractAddress
+            quoteTokenDecimals = t.decimals
         }
     })
 
@@ -79,20 +100,39 @@ router.get(['/orderbook/:pairName'], async function (req, res, next) {
     let ret = {}
     ret.asks = []
     ret.bids = []
-    orderbook.asks.forEach(a => {
+    let askDepth = (depth / 2) || orderbook.asks.length
+    for (let i = 0; i < askDepth; i++) {
+        let a = orderbook.asks[i]
+        let price = new BigNumber(a.pricepoint).dividedBy(10 ** quoteTokenDecimals).toString(10)
+        let { amountPrecision } = tomox.calcPrecision(parseFloat(price))
+        let amount = new BigNumber(a.amount).dividedBy(10 ** baseTokenDecimals).toFixed(amountPrecision)
         ret.asks.push([
-            a.pricepoint, a.amount
+            price, amount
         ])
-    })
-    orderbook.bids.forEach(a => {
+    }
+
+    let bidDepth = (depth / 2) || orderbook.bids.length
+    for (let i = 0; i < bidDepth; i++) {
+        let a = orderbook.bids[i]
+        let price = new BigNumber(a.pricepoint).dividedBy(10 ** quoteTokenDecimals).toString(10)
+        let { amountPrecision } = tomox.calcPrecision(parseFloat(price))
+        let amount = new BigNumber(a.amount).dividedBy(10 ** baseTokenDecimals).toFixed(amountPrecision)
         ret.bids.push([
-            a.pricepoint, a.amount
+            price, amount
         ])
-    })
+    }
+
+    ret.timestamp = moment().unix() * 1000
     return res.json(ret)
 })
 
-router.get(['/trades/:pairName'], async function (req, res, next) {
+router.get(['/trades/:pairName'], [
+    check('pairName').exists().isLength({ max: 10 }).withMessage("'market_pair' is required, max length 10")
+], async function (req, res, next) {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+        return next(errors.array())
+    }
     let baseToken = req.params.pairName.split('_')[0]
     let quoteToken = req.params.pairName.split('_')[1]
     let baseTokenAddress = ''
@@ -126,7 +166,7 @@ router.get(['/trades/:pairName'], async function (req, res, next) {
             price: price.toString(10),
             base_volume: baseVolume.toString(10),
             quote_volume: quoteVolume.toFixed(amountPrecision),
-            timestamp: moment(t.createdAt).unix(),
+            timestamp: moment(t.createdAt).unix() * 1000,
             type: t.takerOrderSide
         }
     })
