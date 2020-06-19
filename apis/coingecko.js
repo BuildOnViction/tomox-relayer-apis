@@ -1,10 +1,10 @@
 const express = require('express')
 const router = express.Router()
 const TomoXJS = require('tomoxjs')
-const assets = require('../assets')
 const tomox = new TomoXJS()
 const BigNumber = require('bignumber.js')
-const { check, validationResult, query } = require('express-validator/check')
+const moment = require('moment')
+const { validationResult, query } = require('express-validator')
 
 router.get('/pairs', async function (req, res, next) {
     try {
@@ -25,30 +25,43 @@ router.get('/pairs', async function (req, res, next) {
 router.get('/tickers', async function (req, res, next) {
     try {
         const data = await tomox.getMarkets()
+
+        const tokens = await tomox.getTokens()
+
         const result = data.map(d => {
             const pair = d.pair.pairName.split('/')
+            const baseToken = tokens.find(t => t.symbol === pair[0].toUpperCase())
+
+            const quoteToken = tokens.find(t => t.symbol === pair[1].toUpperCase())
+
+            let baseVolume = new BigNumber(d.baseVolume).dividedBy(10 ** baseToken.decimals)
+            let targetVolume = new BigNumber(d.volume).dividedBy(10 ** quoteToken.decimals)
             return {
                 ticker_id: `${pair[0]}_${pair[1]}`,
                 base_currency: pair[0].toUpperCase(),
                 target_currency: pair[1].toUpperCase(),
-                last_price: d.close,
-                base_volume: 0,
-                target_volume: 0,
-                bid: d.askPrice,
-                ask: d.bidPrice,
-                high: d.high,
-                low: d.low
+                last_price: new BigNumber(d.close).dividedBy(10 ** quoteToken.decimals),
+                base_volume: baseVolume,
+                target_volume: targetVolume,
+                bid: new BigNumber(d.bidPrice).dividedBy(10 ** quoteToken.decimals),
+                ask: new BigNumber(d.askPrice).dividedBy(10 ** quoteToken.decimals),
+                high: new BigNumber(d.high).dividedBy(10 ** quoteToken.decimals),
+                low: new BigNumber(d.low).dividedBy(10 ** quoteToken.decimals)
             }
         })
-        return res.send(data)
+        return res.send(result)
     } catch (error) {
         return next(error)
     }
 })
 
-router.get('/orderbook', async function (req, res, next) {
+router.get('/orderbook', [
+    query('ticker_id').exists().withMessage("'ticker_id' is required"),
+    query('depth').optional().isInt().withMessage("'depth' must be number")
+], async function (req, res, next) {
     try {
         const ticker_id = req.query.ticker_id
+        const depth = req.query.depth || 100
         const pair = ticker_id.split('_')
         const tokens = await tomox.getTokens()
         const baseToken = tokens.find(t => t.symbol === pair[0].toUpperCase())
@@ -61,17 +74,56 @@ router.get('/orderbook', async function (req, res, next) {
         })
         const response = {
             ticker_id: `${baseToken.symbol}_${quoteToken.symbol}`,
-            bids: data.bids.map(b => [b.pricepoint, b.amount]),
-            asks: data.asks.map(a => [a.pricepoint, a.amount])
+            bids: [],
+            asks: []
         }
+
+        let askDepth
+        let bidDepth
+        if (!depth || depth < 0) {
+            askDepth = data.asks.length
+            bidDepth = data.bids.length
+        } else {
+            if (depth / 2 > data.asks.length) {
+                askDepth = data.asks.length
+            } else { askDepth = depth / 2 }
+
+            if (depth / 2 > data.bids.length) {
+                bidDepth = data.bids.length
+            } else { bidDepth = depth / 2 }
+        }
+
+        for (let i = 0; i < askDepth; i++) {
+            let a = data.asks[i]
+            let price = new BigNumber(a.pricepoint).dividedBy(10 ** quoteToken.decimals).toString(10)
+            let { amountPrecision } = tomox.calcPrecision(parseFloat(price))
+            let amount = new BigNumber(a.amount).dividedBy(10 ** baseToken.decimals).toFixed(amountPrecision)
+            response.asks.push([
+                price, amount
+            ])
+        }
+
+        for (let i = 0; i < bidDepth; i++) {
+            let b = data.bids[i]
+            let price = new BigNumber(b.pricepoint).dividedBy(10 ** quoteToken.decimals).toString(10)
+            let { amountPrecision } = tomox.calcPrecision(parseFloat(price))
+            let amount = new BigNumber(b.amount).dividedBy(10 ** baseToken.decimals).toFixed(amountPrecision)
+            response.bids.push([
+                price, amount
+            ])
+        }
+
+        
         return res.send(response)
     } catch (error) {
         return next(error)
     }
 })
 
-router.get('/historical_trade', [
-    query('ticker_id').exists().withMessage("'ticker_id' is required")
+router.get('/historical_trades', [
+    query('ticker_id').exists().withMessage("'ticker_id' is required"),
+    query('type').optional(),
+    query('limit').optional().isInt().withMessage("'limit' must be number")
 ], async function (req, res, next) {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
@@ -79,6 +131,7 @@ router.get('/historical_trade', [
     }
     try {
         const ticker_id = req.query.ticker_id
+        const type = req.query.type
         const pair = ticker_id.split('_')
         const tokens = await tomox.getTokens()
         const baseToken = tokens.find(t => t.symbol === pair[0].toUpperCase())
@@ -96,15 +149,46 @@ router.get('/historical_trade', [
         }
 
         const data = await tomox.getTrades(params)
-        const result = data.trades.map(t => {
-            return {
-                trade_id: parseInt(t.hash, 16),
-                price: new BigNumber(t.pricepoint).dividedBy(10 ** quoteToken.decimals),
-                base_volume: new BigNumber(t.amount).dividedBy(10 ** baseToken.decimals),
-                type: t.takerOrderSide.toLowerCase()
+
+        let result = {
+            buy: [],
+            sell: []
+        }
+        data.trades.map(t => {
+            let price = new BigNumber(t.pricepoint).dividedBy(10 ** quoteToken.decimals)
+            let baseVolume = new BigNumber(t.amount).dividedBy(10 ** baseToken.decimals)
+            let { amountPrecision } = tomox.calcPrecision(parseFloat(price.toString(10)))
+            let targetVolume = baseVolume.multipliedBy(price)
+
+            if (t.takerOrderSide.toLowerCase() === 'buy') {
+                result.buy.push({
+                    trade_id: parseInt(t.hash.substr(t.hash.length - 8), 16),
+                    price: new BigNumber(t.pricepoint).dividedBy(10 ** quoteToken.decimals),
+                    base_volume: new BigNumber(t.amount).dividedBy(10 ** baseToken.decimals),
+                    target_volume: targetVolume.toFixed(amountPrecision),
+                    type: t.takerOrderSide.toLowerCase(),
+                    timestamp: moment(t.createdAt).unix()
+                })
+            } else if (t.takerOrderSide.toLowerCase() === 'sell') {
+                result.sell.push({
+                    trade_id: parseInt(t.hash.substr(t.hash.length - 8), 16),
+                    price: price,
+                    base_volume: baseVolume,
+                    target_volume: targetVolume.toFixed(amountPrecision),
+                    type: t.takerOrderSide.toLowerCase(),
+                    timestamp: moment(t.createdAt).unix()
+                })
             }
         })
-        return res.send(data)
+        if (type) {
+            if (type.toLowerCase() === 'buy') {
+                delete result.sell
+            }
+            if (type.toLowerCase() === 'sell') {
+                delete result.buy
+            }
+        }
+        return res.send(result)
     } catch (error) {
         return next(error)
     }

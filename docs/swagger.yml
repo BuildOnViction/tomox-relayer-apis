@@ -10,6 +10,8 @@ info:
 tags:
   - name: CoinMarketCap
     description: CoinMarketCap's Ideal API Endpoints
+  - name: CoinGecKo
+    description: CoinGecKo's Ideal API Endpoints
 consumes:
   - application/json
 produces:
@@ -241,6 +243,192 @@ paths:
           required: true
           default: TOMO_USDT
           type: string
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '406':
+          description: Not Acceptable
+        '500':
+          description: Server Internal Error
+
+  /api/coingecko/pairs:
+    get:
+      tags:
+        - CoinGecKo
+      summary: Details on cryptoassets traded on an exchange.
+      description: >-
+        The endpoint provides a summary on cryptoasset trading pairs available on the exchange.
+
+
+        **Returns**
+
+
+         - `ticker_id:` `(string - Mandatory)` Identifier of a ticker with delimiter to separate base/target, eg. BTC_ETH 
+
+         - `base:` `(string - Mandatory)` Symbol/currency code of a the base cryptoasset, eg. BTC
+
+         - `target:` `(string - Mandatory)` Symbol/currency code of the target cryptoasset, eg. ETH
+
+
+        
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '406':
+          description: Not Acceptable
+        '500':
+          description: Server Internal Error
+
+  /api/coingecko/tickers:
+    get:
+      tags:
+        - CoinGecKo
+      summary: Market related statistics for all markets for the last 24 hours.
+      description: >-
+        The endpoint provides 24-hour pricing and volume information on each market pair available on an exchange.
+
+
+        **Returns**
+
+
+         - `ticker_id:` `(string - Mandatory)` Identifier of a ticker with delimiter to separate base/target, eg. BTC_ETH 
+
+         - `base_currency:` `(string - Mandatory)` Symbol/currency code of base pair, eg. BTC
+
+         - `target_currency:` `(string - Mandatory)` Symbol/currency code of target pair, eg. ETH
+
+         - `last_price:` `(decimal - Mandatory)` Last transacted price of base currency based on given target currency
+
+         - `base_volume:` `(decimal - Mandatory)` 24 hour trading volume in base pair volume
+
+         - `target_volume:` `(decimal - Mandatory)` 24 hour trading volume in target pair volume
+
+         - `bid:` `(decimal - Mandatory)` Current highest bid price
+
+         - `ask:` `(decimal - Mandatory)` Current lowest ask price
+         
+         - `high:` `(decimal - Mandatory)` Rolling 24-hours highest transaction price
+
+         - `low:` `(decimal - Mandatory)` Rolling 24-hours lowest transaction price
+
+
+        
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '406':
+          description: Not Acceptable
+        '500':
+          description: Server Internal Error
+
+  /api/coingecko/orderbook:
+    get:
+      tags:
+        - CoinGecKo
+      summary: Order book depth of any given trading pair, split into two different arrays for bid and ask orders.
+      description: >-
+        The endpoint is to provide order book information with at least depth = 100 (50 each side) returned for a given market pair/ticker. 
+
+
+        **Returns**
+
+
+         - `ticker_id:` `(string - Mandatory)` A pair such as "BTC_ETH", with delimiter between different cryptoassets
+
+         - `timestamp:` `(timestamp - Recommended)` Unix timestamp in milliseconds for when the last updated time occurred.
+
+         - `bids:` `(decimal - Mandatory)` An array containing 2 elements. The offer price and quantity for each bid order
+
+         - `asks:` `(decimal - Mandatory)` An array containing 2 elements. The ask price and quantity for each ask order
+
+      parameters:
+        - name: ticker_id
+          in: query
+          description: A ticker such as "BTC_ETH", with delimiter between different cryptoassets
+          default: TOMO_USDT
+          required: true
+          type: string
+
+        - name: depth
+          in: query
+          description: "Orders depth quantity: [0, 100, 200, 500...]. 0 returns full depth. Depth = 100 means 50 for each bid/ask side."
+          required: false
+          type: integer
+
+
+        
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '406':
+          description: Not Acceptable
+        '500':
+          description: Server Internal Error
+
+  /api/coingecko/historical_trades:
+    get:
+      tags:
+        - CoinGecKo
+      summary: Historical trade data for any given trading pair. 
+      description: >-
+        The endpoint is used to return data on historical completed trades for a given market pair.
+
+
+        **Returns**
+
+
+         - `ticker_id:` `(integer - Mandatory)` A unique ID associated with the trade for the currency pair transaction
+
+         - `price:` `(decimal - Mandatory)` Transaction price in base pair volume.
+
+         - `base_volume:` `(decimal - Mandatory)` Transaction amount in base pair volume.
+
+         - `target_volume:` `(decimal - Mandatory)` Transaction amount in target pair volume.
+         
+         - `trade_timestamp:` `(timestamp - Mandatory)` Unix timestamp in milliseconds for when the transaction occurred.
+
+         - `type:` `(string - Mandatory)` Used to determine the type of the transaction that was completed.
+
+      parameters:
+        - name: ticker_id
+          in: query
+          description: A ticker such as "BTC_ETH", with delimiter between different cryptoassets
+          default: TOMO_USDT
+          required: true
+          type: string
+
+        - name: type
+          in: query
+          description: To indicate nature of trade - buy/sell
+          default: buy
+          required: true
+          type: string
+          enum: ['buy', 'sell']
+
+        - name: limit
+          in: query
+          description: "Number of historical trades to retrieve from time of query. [0, 200, 500...]. 0 returns full history."
+          required: false
+          type: integer
+        
+
+        
       responses:
         '200':
           description: OK
