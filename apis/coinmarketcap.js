@@ -5,7 +5,7 @@ const TomoXJS = require('tomoxjs')
 const BigNumber = require('bignumber.js')
 const assets = require('../assets')
 const moment = require('moment')
-const tomox = new TomoXJS('https://dex.devnet.tomochain.com')
+const tomox = new TomoXJS(config.get('endpoint'))
 const { check, validationResult } = require('express-validator/check')
 
 router.get('/markets', async function (req, res, next) {
