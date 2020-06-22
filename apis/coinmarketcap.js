@@ -6,7 +6,7 @@ const BigNumber = require('bignumber.js')
 const assets = require('../assets')
 const moment = require('moment')
 const tomox = new TomoXJS(config.get('endpoint'))
-const { check, validationResult } = require('express-validator/check')
+const { check, validationResult } = require('express-validator')
 
 router.get('/markets', async function (req, res, next) {
     let markets = await tomox.getMarkets()
@@ -89,64 +89,68 @@ router.get(['/orderbook/:pairName'], [
     if (!errors.isEmpty()) {
         return next(errors.array())
     }
-    let baseToken = req.params.pairName.split('_')[0]
-    let quoteToken = req.params.pairName.split('_')[1]
-    let depth = req.query.depth || 0
-    let level = req.query.level || 3
-    if (parseInt(level) === 1) {
-        depth = 2
-    }
-    if (parseInt(level) === 2) {
-        depth = 20
-    }
-    let baseTokenAddress = ''
-    let quoteTokenAddress = ''
-    let baseTokenDecimals = 18
-    let quoteTokenDecimals = 18
-    let tokens = await tomox.getTokens()
-
-    tokens.forEach(t => {
-        if (t.symbol === baseToken) {
-            baseTokenAddress = t.contractAddress
-            baseTokenDecimals = t.decimals
+    try {
+        let baseToken = req.params.pairName.split('_')[0]
+        let quoteToken = req.params.pairName.split('_')[1]
+        let depth = req.query.depth || 0
+        let level = req.query.level || 3
+        if (parseInt(level) === 1) {
+            depth = 2
         }
-        if (t.symbol === quoteToken) {
-            quoteTokenAddress = t.contractAddress
-            quoteTokenDecimals = t.decimals
+        if (parseInt(level) === 2) {
+            depth = 20
         }
-    })
+        let baseTokenAddress = ''
+        let quoteTokenAddress = ''
+        let baseTokenDecimals = 18
+        let quoteTokenDecimals = 18
+        let tokens = await tomox.getTokens()
 
-    let orderbook = await tomox.getOrderBook({
-        baseToken: baseTokenAddress,
-        quoteToken: quoteTokenAddress
-    })
-    let ret = {}
-    ret.asks = []
-    ret.bids = []
-    let askDepth = (depth / 2) || orderbook.asks.length
-    for (let i = 0; i < askDepth; i++) {
-        let a = orderbook.asks[i]
-        let price = new BigNumber(a.pricepoint).dividedBy(10 ** quoteTokenDecimals).toString(10)
-        let { amountPrecision } = tomox.calcPrecision(parseFloat(price))
-        let amount = new BigNumber(a.amount).dividedBy(10 ** baseTokenDecimals).toFixed(amountPrecision)
-        ret.asks.push([
-            price, amount
-        ])
+        tokens.forEach(t => {
+            if (t.symbol === baseToken) {
+                baseTokenAddress = t.contractAddress
+                baseTokenDecimals = t.decimals
+            }
+            if (t.symbol === quoteToken) {
+                quoteTokenAddress = t.contractAddress
+                quoteTokenDecimals = t.decimals
+            }
+        })
+
+        let orderbook = await tomox.getOrderBook({
+            baseToken: baseTokenAddress,
+            quoteToken: quoteTokenAddress
+        })
+        let ret = {}
+        ret.asks = []
+        ret.bids = []
+        let askDepth = ((depth / 2) > orderbook.asks.length ? orderbook.asks.length : (depth / 2)) || orderbook.asks.length
+        for (let i = 0; i < askDepth; i++) {
+            let a = orderbook.asks[i]
+            let price = new BigNumber(a.pricepoint).dividedBy(10 ** quoteTokenDecimals).toString(10)
+            let { amountPrecision } = tomox.calcPrecision(parseFloat(price))
+            let amount = new BigNumber(a.amount).dividedBy(10 ** baseTokenDecimals).toFixed(amountPrecision)
+            ret.asks.push([
+                price, amount
+            ])
+        }
+
+        let bidDepth = ((depth / 2) > orderbook.bids.length ? orderbook.bids.length : (depth / 2)) || orderbook.bids.length
+        for (let i = 0; i < bidDepth; i++) {
+            let a = orderbook.bids[i]
+            let price = new BigNumber(a.pricepoint).dividedBy(10 ** quoteTokenDecimals).toString(10)
+            let { amountPrecision } = tomox.calcPrecision(parseFloat(price))
+            let amount = new BigNumber(a.amount).dividedBy(10 ** baseTokenDecimals).toFixed(amountPrecision)
+            ret.bids.push([
+                price, amount
+            ])
+        }
+
+        ret.timestamp = moment().unix() * 1000
+        return res.json(ret)
+    } catch (error) {
+        return next(error)
     }
-
-    let bidDepth = (depth / 2) || orderbook.bids.length
-    for (let i = 0; i < bidDepth; i++) {
-        let a = orderbook.bids[i]
-        let price = new BigNumber(a.pricepoint).dividedBy(10 ** quoteTokenDecimals).toString(10)
-        let { amountPrecision } = tomox.calcPrecision(parseFloat(price))
-        let amount = new BigNumber(a.amount).dividedBy(10 ** baseTokenDecimals).toFixed(amountPrecision)
-        ret.bids.push([
-            price, amount
-        ])
-    }
-
-    ret.timestamp = moment().unix() * 1000
-    return res.json(ret)
 })
 
 router.get(['/trades/:pairName'], [

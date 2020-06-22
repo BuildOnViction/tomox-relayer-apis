@@ -78,20 +78,8 @@ router.get('/orderbook', [
             asks: []
         }
 
-        let askDepth
-        let bidDepth
-        if (!depth || depth < 0) {
-            askDepth = data.asks.length
-            bidDepth = data.bids.length
-        } else {
-            if (depth / 2 > data.asks.length) {
-                askDepth = data.asks.length
-            } else { askDepth = depth / 2 }
-
-            if (depth / 2 > data.bids.length) {
-                bidDepth = data.bids.length
-            } else { bidDepth = depth / 2 }
-        }
+        let askDepth = ((depth / 2) > data.asks.length ? data.asks.length : (depth / 2)) || data.asks.length
+        let bidDepth = ((depth / 2) > data.bids.length ? data.bids.length : (depth / 2)) || data.bids.length
 
         for (let i = 0; i < askDepth; i++) {
             let a = data.asks[i]
