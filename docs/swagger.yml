@@ -189,7 +189,7 @@ paths:
           in: query
           description: Level 1 - Only the best bid and ask. Level 2 - Arranged by best bids and asks. Level 3 - Complete order book, no aggregation.
           required: false
-          default: 0
+          default: 3
           type: number
           enum: [ 1, 2, 3 ]
       responses:
