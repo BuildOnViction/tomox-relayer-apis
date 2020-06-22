@@ -10,8 +10,8 @@ info:
 tags:
   - name: CoinMarketCap
     description: CoinMarketCap's Ideal API Endpoints
-  - name: CoinGecKo
-    description: CoinGecKo's Ideal API Endpoints
+  - name: CoinGecko
+    description: CoinGecko's Ideal API Endpoints
 consumes:
   - application/json
 produces:
@@ -258,8 +258,8 @@ paths:
   /api/coingecko/pairs:
     get:
       tags:
-        - CoinGecKo
-      summary: Details on cryptoassets traded on an exchange.
+        - CoinGecko
+      summary: Endpoint 1 - details on cryptoassets traded on an exchange.
       description: >-
         The endpoint provides a summary on cryptoasset trading pairs available on the exchange.
 
@@ -290,8 +290,8 @@ paths:
   /api/coingecko/tickers:
     get:
       tags:
-        - CoinGecKo
-      summary: Market related statistics for all markets for the last 24 hours.
+        - CoinGecko
+      summary: Endpoint 2 - market related statistics for all markets for the last 24 hours.
       description: >-
         The endpoint provides 24-hour pricing and volume information on each market pair available on an exchange.
 
@@ -336,8 +336,8 @@ paths:
   /api/coingecko/orderbook:
     get:
       tags:
-        - CoinGecKo
-      summary: Order book depth of any given trading pair, split into two different arrays for bid and ask orders.
+        - CoinGecko
+      summary: Endpoint 3 - order book depth of any given trading pair, split into two different arrays for bid and ask orders.
       description: >-
         The endpoint is to provide order book information with at least depth = 100 (50 each side) returned for a given market pair/ticker. 
 
@@ -384,8 +384,8 @@ paths:
   /api/coingecko/historical_trades:
     get:
       tags:
-        - CoinGecKo
-      summary: Historical trade data for any given trading pair. 
+        - CoinGecko
+      summary: Endpoint 4 - historical trade data for any given trading pair. 
       description: >-
         The endpoint is used to return data on historical completed trades for a given market pair.
 

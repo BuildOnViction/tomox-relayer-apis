@@ -1,10 +1,11 @@
 const express = require('express')
 const router = express.Router()
 const TomoXJS = require('tomoxjs')
-const tomox = new TomoXJS()
 const BigNumber = require('bignumber.js')
 const moment = require('moment')
 const { validationResult, query } = require('express-validator')
+const config = require('config')
+const tomox = new TomoXJS(config.get('endpoint'))
 
 router.get('/pairs', async function (req, res, next) {
     try {
