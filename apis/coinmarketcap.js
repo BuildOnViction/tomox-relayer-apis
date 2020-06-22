@@ -37,7 +37,7 @@ router.get('/markets', async function (req, res, next) {
             highest_bid: new BigNumber(m.bidPrice).dividedBy(10 ** quoteTokenDecimals).toString(10),
             base_volume: new BigNumber(m.baseVolume).dividedBy(10 ** baseTokenDecimals).toString(10),
             quote_volume: new BigNumber(m.volume).dividedBy(10 ** quoteTokenDecimals).toString(10),
-            price_change_percent_24h: m.change,
+            price_change_percent_24h: (m.change * 100).toFixed(4),
             highest_price_24h: new BigNumber(m.high).dividedBy(10 ** quoteTokenDecimals).toString(10),
             lowest_price_24h: new BigNumber(m.low).dividedBy(10 ** quoteTokenDecimals).toString(10)
         }
