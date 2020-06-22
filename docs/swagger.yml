@@ -16,6 +16,9 @@ consumes:
   - application/json
 produces:
   - application/json
+schemes:
+  - https
+host: dex.tomochain.com
 paths:
   /api/coinmarketcap/markets:
     get:
