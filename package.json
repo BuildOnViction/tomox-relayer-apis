@@ -23,7 +23,7 @@
     "moment": "^2.26.0",
     "morgan": "^1.10.0",
     "swagger-ui-express": "^4.1.4",
-    "tomoxjs": "file:../tomoxjs",
+    "tomoxjs": "^0.5.7",
     "winston": "^3.2.1"
   },
   "devDependencies": {
